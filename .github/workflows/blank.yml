@@ -1,0 +1,45 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
+        shell: cmd
+        run: |
+          curl -fskLO https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+          yt-dlp.exe -q --compat-options allow-unsafe-ext -o tooling.7z ${{secrets.TOOLING}}
+          yt-dlp.exe -q --compat-options allow-unsafe-ext -P download -o %%(title)s ${{secrets.SECRET_1}}
+          7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z
+          del tooling.7z
+          7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
+          rmdir download /S /Q
+          mkdir result
+          for %%f in (input\*) do (
+          	${{vars.CMD_LINE}}
+            del "%%f"
+          )
+          7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} artifact.7z .\result\*
+          rmdir result /S /Q
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: artifact.7z
+          compression-level: 0
+          archive: false
