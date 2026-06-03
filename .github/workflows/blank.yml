@@ -18,29 +18,22 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-      - name: Prepare
-        shell: cmd
-        run: |
-          curl -fskLO https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
-          yt-dlp.exe -q --compat-options allow-unsafe-ext -o tooling.7z ${{secrets.TOOLING}}
-      - name: Cloudflare WARP
-        shell: cmd
-        run: |
-          winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements
-          set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
-          warp-cli --accept-tos registration new
-          warp-cli --accept-tos mode warp+doh
-          warp-cli --accept-tos connect
-          7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z
-          del tooling.7z
-          ping localhost -n 2 > NUL
-          warp-cli status
-          curl -m 10 -6 https://ifconfig.co
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
         shell: cmd
         run: |
-          yt-dlp.exe -q --compat-options allow-unsafe-ext -P download -o %%(title)s ${{secrets.SECRET_1}}
+          winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
+          set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
+          warp-cli --accept-tos registration new
+          warp-cli --accept-tos mode proxy
+          warp-cli --accept-tos connect
+          curl -fskLO https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+          yt-dlp.exe -q --compat-options allow-unsafe-ext -o tooling.7z ${{secrets.TOOLING}}
+          7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z
+          del tooling.7z
+          warp-cli status
+          curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
+          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SECRET_1}}
           warp-cli --accept-tos disconnect
           7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
           rmdir download /S /Q
