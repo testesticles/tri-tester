@@ -18,8 +18,10 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-      - name: Setup WARP
-        run: winget install Warp.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity
+      - name: Cloudflare WARP for Github Actions
+        uses: sebst/actions-warp@v1
+        with:
+          tos: YES
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
         shell: cmd
