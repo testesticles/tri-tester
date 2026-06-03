@@ -19,6 +19,7 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
       - name: Cloudflare WARP
+        shell: cmd
         run: |
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements
           set "PATH=%PATH%C:\Program Files\Cloudflare\Cloudflare WARP;"
