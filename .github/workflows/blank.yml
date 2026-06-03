@@ -21,10 +21,8 @@ jobs:
       - name: Cloudflare WARP
         run: |
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements
-          set "PATH=%PATH%C:\Program Files\Cloudflare\Cloudflare WARP\;"
-          dir "C:\Program files\Cloudflare"
-          echo ---------------
-          dir "C:\Program files (x86)"
+          set "PATH=%PATH%C:\Program Files\Cloudflare\Cloudflare WARP;"
+          dir "C:\Program files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
           warp-cli --accept-tos mode warp+doh
           warp-cli --accept-tos connect
