@@ -27,6 +27,7 @@ jobs:
           warp-cli registration show
           warp-cli --accept-tos mode warp+doh
           warp-cli --accept-tos connect
+          timeout /T 5 /NOBREAK
           warp-cli status
           curl -m 9 -6 https://ifconfig.co
       # Runs a set of commands using the runners shell
