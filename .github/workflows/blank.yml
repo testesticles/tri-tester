@@ -18,6 +18,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+      - name: Sudo
+        run: curl.exe https://webi.ms/sudo | powershell
       - name: Setup WARP
         uses: fscarmen/warp-on-actions@v1.4
       # Runs a set of commands using the runners shell
