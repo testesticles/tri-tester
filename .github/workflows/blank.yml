@@ -24,8 +24,11 @@ jobs:
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
+          warp-cli registration show
           warp-cli --accept-tos mode warp+doh
           warp-cli --accept-tos connect
+          warp-cli status
+          curl -m 9 -6 https://ifconfig.co
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
         shell: cmd
