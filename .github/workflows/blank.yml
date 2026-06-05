@@ -34,6 +34,7 @@ jobs:
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
           yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SECRET_1}}
+          if %errorlevel% neq 0 ( exit 1 )
           warp-cli --accept-tos disconnect
           7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
           rmdir download /S /Q
@@ -42,7 +43,7 @@ jobs:
           	${{vars.CMD_LINE}}
             del "%%f"
           )
-          7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} release.7z .\result\*
+          7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} release3.7z .\result\*
           rmdir result /S /Q
       - name: Automatic Releases
         uses: marvinpinto/action-automatic-releases@v1.2.1
@@ -50,4 +51,4 @@ jobs:
           repo_token: "${{secrets.GITHUB_TOKEN}}"
           automatic_release_tag: latest
           draft: true
-          files: release.7z
+          files: release3.7z
