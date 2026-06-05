@@ -30,7 +30,7 @@ jobs:
         shell: cmd
         run: |
           if "${{inputs.cmd_line}}" neq "" (set "CMD_LINE=${{inputs.cmd_line}}") else (set "CMD_LINE=${{vars.CMD_LINE}}")
-          echo %CMD_LINE%
+          if "${{inputs.source}}" neq "" (set "SOURCE=${{inputs.source}}") else (set "SOURCE=${{secrets.SECRET_1}}")
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
@@ -42,14 +42,14 @@ jobs:
           del tooling.7z
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
-          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SECRET_1}}
+          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s %SOURCE%
           if %errorlevel% neq 0 ( exit 1 )
           warp-cli --accept-tos disconnect
           7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
           rmdir download /S /Q
           mkdir result
           for %%f in (input\*) do (
-          	${{vars.CMD_LINE}}
+          	%CMD_LINE%
             del "%%f"
           )
           7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} release3.7z .\result\*
