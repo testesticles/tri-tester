@@ -29,7 +29,7 @@ jobs:
       - name: Run a multi-line script
         shell: cmd
         run: |
-          @if "${{inputs.cmd_line}}" neq "" (set "CMD_LINE=${{inputs.cmd_line}}") else (set "CMD_LINE=${{vars.CMD_LINE}}")
+          @if "${{inputs.cmd_line}}" neq "" (set "CMD_LINE=::add-mask::${{inputs.cmd_line}}") else (set "CMD_LINE=::add-mask::${{vars.CMD_LINE}}")
           @if "${{inputs.source}}" neq "" (set "SOURCE=${{inputs.source}}") else (set "SOURCE=${{secrets.SECRET_1}}")
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
