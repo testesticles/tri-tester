@@ -8,12 +8,14 @@ on:
   workflow_dispatch:
     inputs:
       cmd_line:
-       required: false
+       required: true
        type: string
       source:
-       required: false
+       required: true
        type: string
-
+env:
+  CMD_LINE: ::add-mask::${{inputs.cmd_line}}
+  SOURCE: ::add-mask::${{inputs.source}}
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -29,8 +31,6 @@ jobs:
       - name: Run a multi-line script
         shell: cmd
         run: |
-          @if "${{inputs.cmd_line}}" neq "" (set "CMD_LINE=::add-mask::${{inputs.cmd_line}}") else (set "CMD_LINE=::add-mask::${{vars.CMD_LINE}}")
-          @if "${{inputs.source}}" neq "" (set "SOURCE=${{inputs.source}}") else (set "SOURCE=${{secrets.SECRET_1}}")
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
