@@ -6,12 +6,6 @@ name: CI
 on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-    inputs:
-      params:
-       required: false
-       type: string
-env:
-  PARAMS: ${{inputs.params}}
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -24,10 +18,9 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
       # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Prepare
         shell: cmd
         run: |
-          if not defined PARAMS ( set "PARAMS=${{secrets.PARAMS}}" )
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
@@ -39,19 +32,28 @@ jobs:
           del tooling.7z
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
+      - name: Download
+        shell: cmd
+        run: |
           yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SECRET_1}}
           if %errorlevel% neq 0 ( exit 1 )
           warp-cli --accept-tos disconnect
+      - name: Extract
+        shell: cmd
+        run: |
           7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
-          rmdir download /S /Q
+          rmdir download /S /Q 
+      - name: Work
+        shell: cmd
+        run: |
           mkdir result
           for %%f in (input\*) do (
-          	${{secrets.CMD_LINE}} %PARAMS%
+          	${{vars.CMD_LINE}}
             del "%%f"
           )
           7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} release3.7z .\result\*
           rmdir result /S /Q
-      - name: Automatic Releases
+      - name: Finish
         uses: marvinpinto/action-automatic-releases@v1.2.1
         with:
           repo_token: "${{secrets.GITHUB_TOKEN}}"
