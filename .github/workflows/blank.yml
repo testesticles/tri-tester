@@ -10,12 +10,8 @@ on:
       params:
        required: false
        type: string
-      source:
-       required: false
-       type: string
 env:
   PARAMS: ${{inputs.params}}
-  SOURCE: ${{inputs.source}}
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -32,7 +28,6 @@ jobs:
         shell: cmd
         run: |
           if not defined PARAMS ( set "PARAMS=${{secrets.PARAMS}}" )
-          if not defined SOURCE ( set "SOURCE=${{secrets.SECRET_1}}" )
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
@@ -44,7 +39,7 @@ jobs:
           del tooling.7z
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
-          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s %SOURCE%
+          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SECRET_1}}
           if %errorlevel% neq 0 ( exit 1 )
           warp-cli --accept-tos disconnect
           7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
