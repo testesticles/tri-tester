@@ -1,0 +1,56 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI2
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+      # Runs a set of commands using the runners shell
+      - name: Prepare
+        shell: cmd
+        run: |
+          winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
+          set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
+          warp-cli --accept-tos registration new
+          warp-cli --accept-tos mode proxy
+          warp-cli --accept-tos connect
+          curl -fskLO https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+          yt-dlp.exe -q --compat-options allow-unsafe-ext -o tooling.7z ${{secrets.TOOLING}}
+          7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z
+          del tooling.7z
+          warp-cli status
+          curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
+          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SECRET_2}}
+          if %errorlevel% neq 0 ( exit 1 )
+          warp-cli --accept-tos disconnect
+          7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
+          rmdir download /S /Q 
+      - name: Test
+        shell: cmd
+        run: |
+          mkdir result
+          for %%f in (input\*) do (
+          	${{vars.CMD_LINE}}
+            del "%%f"
+          )
+          7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} release32.7z .\result\*
+          rmdir result /S /Q
+      - name: Finish
+        uses: marvinpinto/action-automatic-releases@v1.2.1
+        with:
+          repo_token: "${{secrets.GITHUB_TOKEN}}"
+          automatic_release_tag: latest
+          draft: true
+          files: release32.7z
