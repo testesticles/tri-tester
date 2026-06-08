@@ -43,6 +43,7 @@ jobs:
           echo Begin...
           curl -fskLI ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 (
+            echo File not found
             call :RUN_NEXT
             exit 1 
           )
