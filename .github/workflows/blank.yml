@@ -41,7 +41,7 @@ jobs:
           exit /b 0
           :BEGIN
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
-          setx "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
+          set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
           warp-cli --accept-tos mode proxy
           warp-cli --accept-tos connect
