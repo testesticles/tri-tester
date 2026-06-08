@@ -32,7 +32,7 @@ jobs:
           del tooling.7z
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
-          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/3.7z
+          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/3.7z
           if %errorlevel% neq 0 ( exit 1 )
           warp-cli --accept-tos disconnect
           7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
