@@ -1,7 +1,8 @@
 # This is a basic workflow to help you get started with Actions
 
 name: CI
-  
+env:
+  THIS_WF: 3_${{github.workflow}}
 # Controls when the workflow will run
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -21,6 +22,8 @@ jobs:
       - name: Prepare
         shell: cmd
         run: |
+          echo %THIS_WF%
+          exit 0
           goto BEGIN
           :RUN_NEXT
           curl -L ^
@@ -32,14 +35,13 @@ jobs:
             -d {\"ref\":\"main\"}
           exit /b 0
           :BEGIN
-          curl -fskLI ${{secrets.SOURCE}}/Worker/3.7z
+          curl -fskLI ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 (
-            echo %GITHUB_REPOSITORY%
             call :RUN_NEXT
             exit 1 
           )
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
-          set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
+          setx "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
           warp-cli --accept-tos mode proxy
           warp-cli --accept-tos connect
@@ -49,9 +51,10 @@ jobs:
           del tooling.7z
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
-          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/3.7z
+          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 ( exit 1 )
           warp-cli --accept-tos disconnect
+          call :RUN_NEXT
           7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
           rmdir download /S /Q 
       - name: Test
@@ -62,7 +65,9 @@ jobs:
           	${{vars.CMD_LINE}}
             del "%%f"
           )
-          7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} release3.7z .\result\*
+          set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
+          warp-cli --accept-tos connect
+          7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} release%THIS_WF%.7z .\result\*
           rmdir result /S /Q
       - name: Finish
         uses: marvinpinto/action-automatic-releases@v1.2.1
@@ -70,4 +75,6 @@ jobs:
           repo_token: "${{secrets.GITHUB_TOKEN}}"
           automatic_release_tag: latest
           draft: true
-          files: release3.7z
+          files: release%THIS_WF%.7z
+      - name: Notify
+        run: echo %THIS_WF% finished| curl -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
