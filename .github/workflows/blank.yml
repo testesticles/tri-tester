@@ -46,13 +46,13 @@ jobs:
           warp-cli --accept-tos mode proxy
           warp-cli --accept-tos connect
           curl -fskLO https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
-          yt-dlp.exe --compat-options allow-unsafe-ext -o tooling.7z ${{secrets.TOOLING}}
+          yt-dlp.exe -q --compat-options allow-unsafe-ext -o tooling.7z ${{secrets.TOOLING}}
           7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z
           del tooling.7z
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
           echo ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
-          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
+          yt-dlp.exe --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 (
             call :RUN_NEXT
             exit 1 
