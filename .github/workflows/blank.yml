@@ -40,13 +40,6 @@ jobs:
             -d {\"ref\":\"main\"}
           exit /b 0
           :BEGIN
-          echo Begin...
-          curl -fkLI ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
-          if %errorlevel% neq 0 (
-            echo File not found (%errorlevel%)
-            call :RUN_NEXT
-            exit 1 
-          )
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
           setx "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
@@ -59,7 +52,10 @@ jobs:
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
           yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
-          if %errorlevel% neq 0 ( exit 1 )
+          if %errorlevel% neq 0 (
+            call :RUN_NEXT
+            exit 1 
+          )
           warp-cli --accept-tos disconnect
           call :RUN_NEXT
           7z e -bso0 -p${{secrets.SECRET_P}} -oinput .\download\*
