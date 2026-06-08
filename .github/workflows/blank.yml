@@ -82,4 +82,6 @@ jobs:
           draft: true
           files: release%THIS_WF%.7z
       - name: Notify
-        run: echo %THIS_WF% finished| curl -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
+        run: |
+          echo %THIS_WF% finished| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
+          exit 0
