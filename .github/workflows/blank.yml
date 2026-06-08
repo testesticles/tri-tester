@@ -29,7 +29,6 @@ jobs:
         run: |
           goto BEGIN
           :RUN_NEXT
-          echo Run next...
           if "${{inputs.cascade}}" equ "false" ( exit /b 0 )
           curl -L ^
             -X POST ^
@@ -51,7 +50,6 @@ jobs:
           del tooling.7z
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
-          echo ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 (
             echo %THIS_WF% failed| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
