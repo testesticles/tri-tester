@@ -27,10 +27,9 @@ jobs:
       - name: Prepare
         shell: cmd
         run: |
-          echo ${{inputs.cascade}}
-          exit 0
           goto BEGIN
           :RUN_NEXT
+          if "${{inputs.cascade}}" equ "false" ( exit /b 0 )
           curl -L ^
             -X POST ^
             -H "Accept: application/vnd.github+json" ^
