@@ -37,7 +37,7 @@ jobs:
             -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" ^
             -H "X-GitHub-Api-Version: 2026-03-10" ^
             https://api.github.com/repos/testesticles/tri-tester/actions/workflows/blank2.yml/dispatches ^
-            -d {\"ref\":\"main\"}
+            -d {\"ref\":\"main\",\"inputs\":{\"cascade\":true}}
           exit /b 0
           :BEGIN
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
@@ -52,8 +52,9 @@ jobs:
           warp-cli status
           curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
           echo ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
-          yt-dlp.exe --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
+          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 (
+            echo %THIS_WF% failed| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
             call :RUN_NEXT
             exit 1 
           )
@@ -81,6 +82,7 @@ jobs:
           draft: true
           files: release%THIS_WF%.7z
       - name: Notify
+        shell: cmd
         run: |
           echo %THIS_WF% finished| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
           exit 0
