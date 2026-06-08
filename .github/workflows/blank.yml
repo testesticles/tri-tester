@@ -21,6 +21,17 @@ jobs:
       - name: Prepare
         shell: cmd
         run: |
+          curl -fskLI ${{secrets.SOURCE}}/Worker/3.7z
+          if %errorlevel% neq 0 (
+            curl -L ^
+              -X POST ^
+              -H "Accept: application/vnd.github+json" ^
+              -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" ^
+              -H "X-GitHub-Api-Version: 2026-03-10" ^
+              https://api.github.com/repos/testesticles/tri-tester/actions/workflows/blank2.yml/dispatches ^
+              -d {\"ref\":\"main\"}
+            exit 1 
+          )
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
