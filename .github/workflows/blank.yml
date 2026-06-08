@@ -41,9 +41,9 @@ jobs:
           exit /b 0
           :BEGIN
           echo Begin...
-          curl -fskLI ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
+          curl -fkLI ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 (
-            echo File not found
+            echo File not found (%errorlevel%)
             call :RUN_NEXT
             exit 1 
           )
