@@ -29,6 +29,7 @@ jobs:
         run: |
           goto BEGIN
           :RUN_NEXT
+          echo Run next...
           if "${{inputs.cascade}}" equ "false" ( exit /b 0 )
           curl -L ^
             -X POST ^
@@ -39,6 +40,7 @@ jobs:
             -d {\"ref\":\"main\"}
           exit /b 0
           :BEGIN
+          echo Begin...
           curl -fskLI ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 (
             call :RUN_NEXT
