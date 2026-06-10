@@ -1,29 +1,26 @@
-# This is a basic workflow to help you get started with Actions
-
 name: 6
 env:
   THIS_WF: ${{github.workflow}}
-# Controls when the workflow will run
+  NEXT_REPO: q-tester
+  NEXT_WF: blank.yml
 on:
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
     inputs:
       cascade:
         type: boolean
         default: false
         required: false
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+      f_cmdline:
+        type: string
+        required: false
+      s_cmdline:
+        type: string
+        required: false
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: windows-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v6
-      # Runs a set of commands using the runners shell
+      # - uses: actions/checkout@v6
       - name: Prepare
         shell: cmd
         run: |
@@ -35,8 +32,8 @@ jobs:
             -H "Accept: application/vnd.github+json" ^
             -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" ^
             -H "X-GitHub-Api-Version: 2026-03-10" ^
-            https://api.github.com/repos/testesticles/q-tester/actions/workflows/blank.yml/dispatches ^
-            -d {\"ref\":\"main\",\"inputs\":{\"cascade\":true}}
+            ${{github.api_url}}/repos/${{github.repository_owner}}/${{env.NEXT_REPO}}/actions/workflows/${{env.NEXT_WF}}/dispatches ^
+            -d "{\"ref\":\"main\",\"inputs\":{\"cascade\":true,\"f_cmdline\":\"${{inputs.f_cmdline}}\",\"s_cmdline\":\"${{inputs.s_cmdline}}\"}}"
           exit /b 0
           :BEGIN
           winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
@@ -44,13 +41,21 @@ jobs:
           warp-cli --accept-tos registration new
           warp-cli --accept-tos mode proxy
           warp-cli --accept-tos connect
-          curl -fskLO https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
-          yt-dlp.exe -q --compat-options allow-unsafe-ext -o tooling.7z ${{secrets.TOOLING}}
+          curl -fsL -o "tooling.7z" ^
+            -H "Accept: application/octet-stream" ^
+            -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" ^
+            -H "X-GitHub-Api-Version: 2026-03-10" ^
+            ${{secrets.TOOLING}}
+          if %errorlevel% neq 0 (
+            echo %THIS_WF% failed| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
+            exit 1
+          )
           7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z
           del tooling.7z
           warp-cli status
-          curl -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
-          yt-dlp.exe -q --compat-options allow-unsafe-ext --proxy socks5://127.0.0.1:40000 -P download -o %%(title)s ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
+          curl -s -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
+          mkdir download
+          curl -fkL -o "%THIS_WF%.7z" --output-dir download -x socks5://127.0.0.1:40000 ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
           if %errorlevel% neq 0 (
             echo %THIS_WF% failed| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
             call :RUN_NEXT
@@ -65,7 +70,7 @@ jobs:
         run: |
           mkdir result
           for %%f in (input\*) do (
-          	${{vars.CMD_LINE}}
+          	kekw.exe -hide_banner -loglevel error -i "%%f" -map 0:v:0 -pix_fmt yuv420p -f yuv4mpegpipe ${{inputs.f_cmdline}} - | lolw.exe -i stdin --lookahead 120 --progress 2 -b "result\%%~nf.ivf" --lp 3 --preset 3 --keyint 300 --tune 0 ${{inputs.s_cmdline}}
             del "%%f"
           )
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
