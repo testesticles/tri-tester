@@ -18,7 +18,7 @@ on:
         required: false
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       # - uses: actions/checkout@v6
       - name: Prepare
@@ -36,7 +36,35 @@ jobs:
             -d "{\"ref\":\"main\",\"inputs\":{\"cascade\":true,\"f_cmdline\":\"${{inputs.f_cmdline}}\",\"s_cmdline\":\"${{inputs.s_cmdline}}\"}}"
           exit /b 0
           :BEGIN
-          winget install Cloudflare.Warp --accept-source-agreements --accept-package-agreements --disable-interactivity --silent
+          curl -fsL -o "check.7z" ^
+            -H "Accept: application/octet-stream" ^
+            -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" ^
+            -H "X-GitHub-Api-Version: 2026-03-10" ^
+            ${{secrets.CHECK}}
+          if %errorlevel% neq 0 ( exit 2 )
+          7z e -bso0 -p${{secrets.SECRET_P}} check.7z
+          del check.7z
+          check.exe 41
+          del check.exe
+          if not exist SUCCESS (
+            curl -L ^
+              -X POST ^
+              -H "Accept: application/vnd.github+json" ^
+              -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" ^
+              -H "X-GitHub-Api-Version: 2026-03-10" ^
+              ${{github.api_url}}/repos/${{github.repository}}/actions/workflows/blank2.yml/dispatches ^
+              -d "{\"ref\":\"main\",\"inputs\":{\"cascade\":${{inputs.cascade}},\"f_cmdline\":\"${{inputs.f_cmdline}}\",\"s_cmdline\":\"${{inputs.s_cmdline}}\"}}"
+            curl -L ^
+              -X POST ^
+              -H "Accept: application/vnd.github+json" ^
+              -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" ^
+              -H "X-GitHub-Api-Version: 2026-03-10" ^
+              ${{github.api_url}}/repos/${{github.repository}}/actions/runs/${{github.run_id}}/cancel
+            exit 2
+          )
+          curl -fL -o warp.msi https://downloads.cloudflareclient.com/v1/download/windows/ga
+          msiexec /i warp.msi /quiet /qn /norestart
+          del warp.msi
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
           warp-cli --accept-tos mode proxy
@@ -70,7 +98,7 @@ jobs:
         run: |
           mkdir result
           for %%f in (input\*) do (
-          	kekw.exe -hide_banner -loglevel error -i "%%f" -map 0:v:0 -pix_fmt yuv420p -f yuv4mpegpipe ${{inputs.f_cmdline}} - | lolw.exe -i stdin --lookahead 120 --progress 0 -b "result\%%~nf.ivf" --lp 3 --preset 3 --keyint 10s --tune 0 ${{inputs.s_cmdline}}
+          	start "" /BELOWNORMAL /WAIT /B cmd /c kekw.exe -hide_banner -loglevel error -i "%%f" -map 0:v:0 -pix_fmt yuv420p -f yuv4mpegpipe ${{inputs.f_cmdline}} - | lolw.exe -i stdin --lookahead 120 --progress 0 -b "result\%%~nf.ivf" --lp 3 --preset 3 --keyint 10s --tune 0 ${{inputs.s_cmdline}}
             del "%%f"
           )
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
