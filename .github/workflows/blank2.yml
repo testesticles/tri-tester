@@ -70,7 +70,7 @@ jobs:
         run: |
           mkdir result
           for %%f in (input\*) do (
-          	kekw.exe -hide_banner -loglevel error -i "%%f" -map 0:v:0 -pix_fmt yuv420p -f yuv4mpegpipe ${{inputs.f_cmdline}} - | lolw.exe -i stdin --lookahead 120 --progress 2 -b "result\%%~nf.ivf" --lp 3 --preset 3 --keyint 10s --tune 0 ${{inputs.s_cmdline}}
+          	kekw.exe -hide_banner -loglevel error -i "%%f" -map 0:v:0 -pix_fmt yuv420p -f yuv4mpegpipe ${{inputs.f_cmdline}} - | lolw.exe -i stdin --lookahead 120 --progress 0 -b "result\%%~nf.ivf" --lp 3 --preset 3 --keyint 10s --tune 0 ${{inputs.s_cmdline}}
             del "%%f"
           )
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
