@@ -1,6 +1,5 @@
 name: 5
 env:
-  THIS_WF: ${{github.workflow}}
   NEXT_REPO: tri-tester
   NEXT_WF: blank2.yml
 on:
@@ -20,7 +19,7 @@ jobs:
   build:
     runs-on: windows-2022
     steps:
-      # - uses: actions/checkout@v6
+     # - uses: actions/checkout@v6
       - name: Prepare
         shell: cmd
         run: |
@@ -34,7 +33,9 @@ jobs:
             -H "X-GitHub-Api-Version: 2026-03-10" ^
             ${{github.api_url}}/repos/${{github.repository_owner}}/${{env.NEXT_REPO}}/actions/workflows/${{env.NEXT_WF}}/dispatches ^
             -d "{\"ref\":\"main\",\"inputs\":{\"cascade\":true,\"f_cmdline\":\"${{inputs.f_cmdline}}\",\"s_cmdline\":\"${{inputs.s_cmdline}}\"}}"
-          exit /b 0
+          exit /b
+          :NOTIFY
+          echo ${{github.workflow}} %~1| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}} && exit /b
           :BEGIN
           curl -fsL -o "check.7z" ^
             -H "Accept: application/octet-stream" ^
@@ -46,13 +47,14 @@ jobs:
           del check.7z
           check.exe 41
           del check.exe
+          for /F "tokens=5 delims=/" %%s in ("${{github.workflow_ref}}") do ( set "WF_NAME=%%~ns.yml" )
           if not exist SUCCESS (
             curl -L ^
               -X POST ^
               -H "Accept: application/vnd.github+json" ^
               -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" ^
               -H "X-GitHub-Api-Version: 2026-03-10" ^
-              ${{github.api_url}}/repos/${{github.repository}}/actions/workflows/blank.yml/dispatches ^
+              ${{github.api_url}}/repos/${{github.repository}}/actions/workflows/%WF_NAME%/dispatches ^
               -d "{\"ref\":\"main\",\"inputs\":{\"cascade\":${{inputs.cascade}},\"f_cmdline\":\"${{inputs.f_cmdline}}\",\"s_cmdline\":\"${{inputs.s_cmdline}}\"}}"
             curl -L ^
               -X POST ^
@@ -74,18 +76,15 @@ jobs:
             -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" ^
             -H "X-GitHub-Api-Version: 2026-03-10" ^
             ${{secrets.TOOLING}}
-          if %errorlevel% neq 0 (
-            echo %THIS_WF% failed| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
-            exit 1
-          )
           7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z
           del tooling.7z
           warp-cli status
           curl -s -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
           mkdir download
-          curl -fkL -o "%THIS_WF%.7z" --output-dir download -x socks5://127.0.0.1:40000 -m 300 ${{secrets.SOURCE}}/Worker/%THIS_WF%.7z
+          curl -fkL -o "${{github.workflow}}.7z" --output-dir download -x socks5://127.0.0.1:40000 -m 300 ${{secrets.SOURCE}}/Worker/${{github.workflow}}.7z
           if %errorlevel% neq 0 (
-            echo %THIS_WF% failed| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
+            echo ${{github.workflow}} downloading failed| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
+            call :NOTIFY "downloading failed"
             call :RUN_NEXT
             exit 1 
           )
@@ -96,25 +95,33 @@ jobs:
       - name: Test
         shell: cmd
         run: |
+          setlocal ENABLEDELAYEDEXPANSION
           mkdir result
           for %%f in (input\*) do (
           	start "" /BELOWNORMAL /WAIT /B cmd /c kekw.exe -hide_banner -loglevel error -i "%%f" -map 0:v:0 -pix_fmt yuv420p -f yuv4mpegpipe ${{inputs.f_cmdline}} - | lolw.exe -i stdin --lookahead 120 --progress 0 -b "result\%%~nf.ivf" --lp 3 --preset 3 --keyint 10s --tune 0 ${{inputs.s_cmdline}}
+            if %errorlevel% neq 0 (
+              call :NOTIFY "work failed"
+              call :RUN_NEXT
+              exit 1 
+            )
+            set "OUT_NAME=!OUT_NAME!_%%~nf"
             del "%%f"
           )
           set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos connect
-          7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} release%THIS_WF%.7z .\result\*
+          7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} %OUT_NAME:~1%.7z .\result\*
           rmdir result /S /Q
-      - name: Finish
-        uses: marvinpinto/action-automatic-releases@v1.2.1
+      - name: Release
+        uses: softprops/action-gh-release@v3
         with:
-          repo_token: "${{secrets.GITHUB_TOKEN}}"
-          automatic_release_tag: latest
           draft: true
-          files: release${{env.THIS_WF}}.7z
+          overwrite_files: false
+          name: 💎
+          tag_name: ${{github.run_id}}_${{github.run_attempt}}
+          files: "*.7z"
       - name: Notify
         shell: cmd
         run: |
-          del release${{env.THIS_WF}}.7z
-          echo %THIS_WF% finished| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
+          del /F /Q *.7z
+          echo ${{github.workflow}} finished| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
           exit 0
