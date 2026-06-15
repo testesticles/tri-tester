@@ -20,23 +20,10 @@ jobs:
     runs-on: windows-2022
     steps:
      # - uses: actions/checkout@v6
-      - name: Prepare
+      - name: Check
+        id: check
         shell: cmd
         run: |
-          goto BEGIN
-          :RUN_NEXT
-          if "${{inputs.cascade}}" equ "false" ( exit /b 0 )
-          curl -L ^
-            -X POST ^
-            -H "Accept: application/vnd.github+json" ^
-            -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" ^
-            -H "X-GitHub-Api-Version: 2026-03-10" ^
-            ${{github.api_url}}/repos/${{github.repository_owner}}/${{env.NEXT_REPO}}/actions/workflows/${{env.NEXT_WF}}/dispatches ^
-            -d "{\"ref\":\"main\",\"inputs\":{\"cascade\":true,\"f_cmdline\":\"${{inputs.f_cmdline}}\",\"s_cmdline\":\"${{inputs.s_cmdline}}\"}}"
-          exit /b
-          :NOTIFY
-          echo ${{github.workflow}} %~1| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}} && exit /b
-          :BEGIN
           curl -fsL -o "check.7z" ^
             -H "Accept: application/octet-stream" ^
             -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" ^
@@ -64,29 +51,59 @@ jobs:
               ${{github.api_url}}/repos/${{github.repository}}/actions/runs/${{github.run_id}}/cancel
             exit 2
           )
-          curl -fL -o warp.msi https://downloads.cloudflareclient.com/v1/download/windows/ga
+      - name: Download Warp
+        shell: cmd
+        run: curl -fL -o warp.msi https://downloads.cloudflareclient.com/v1/download/windows/ga
+      - name: Install Warp
+        shell: cmd
+        run: |
+          echo C:\Program Files\Cloudflare\Cloudflare WARP>> %GITHUB_PATH%
           msiexec /i warp.msi /quiet /qn /norestart
+      - name: Connect to Warp
+        shell: cmd
+        run: |
           del warp.msi
-          set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos registration new
           warp-cli --accept-tos mode proxy
           warp-cli --accept-tos connect
+      - name: Get tooling
+        shell: cmd
+        run: | 
           curl -fsL -o "tooling.7z" ^
             -H "Accept: application/octet-stream" ^
             -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" ^
             -H "X-GitHub-Api-Version: 2026-03-10" ^
-            ${{secrets.TOOLING}}
-          7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z
+            ${{secrets.TOOLING}} || exit %errorlevel%
+          7z e -bso0 -p${{secrets.SECRET_P}} tooling.7z || exit %errorlevel%
           del tooling.7z
+      - name: Check Warp status
+        shell: cmd
+        run: |
           warp-cli status
           curl -s -m 10 -x socks5://127.0.0.1:40000 https://ifconfig.co
-          mkdir download
-          curl -fkL -o "${{github.workflow}}.7z" --output-dir download -x socks5://127.0.0.1:40000 -m 300 ${{secrets.SOURCE}}/Worker/${{github.workflow}}.7z
+      - name: Download
+        shell: cmd
+        run: |
+          goto BEGIN
+          :RUN_NEXT
+          if "${{inputs.cascade}}" equ "false" ( exit /b 0 )
+          curl -L ^
+            -X POST ^
+            -H "Accept: application/vnd.github+json" ^
+            -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" ^
+            -H "X-GitHub-Api-Version: 2026-03-10" ^
+            ${{github.api_url}}/repos/${{github.repository_owner}}/${{env.NEXT_REPO}}/actions/workflows/${{env.NEXT_WF}}/dispatches ^
+            -d "{\"ref\":\"main\",\"inputs\":{\"cascade\":true,\"f_cmdline\":\"${{inputs.f_cmdline}}\",\"s_cmdline\":\"${{inputs.s_cmdline}}\"}}"
           if %errorlevel% neq 0 (
-            echo ${{github.workflow}} downloading failed| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
-            call :NOTIFY "downloading failed"
+            echo ${{github.workflow}} failed starting next run| curl -s -x socks5://127.0.0.1:40000 -m 1 --doh-url https://cloudflare-dns.com/dns-query ${{secrets.NOTIFY}}
+          )
+          exit /b 0
+          :BEGIN
+          mkdir download
+          curl -fkL -o "${{github.workflow}}.7z" --output-dir download -x socks5://127.0.0.1:40000 -m 600 ${{secrets.SOURCE}}/Worker/${{github.workflow}}.7z --doh-url https://cloudflare-dns.com/dns-query
+          if %errorlevel% neq 0 (
             call :RUN_NEXT
-            exit 1 
+            exit %errorlevel%
           )
           warp-cli --accept-tos disconnect
           call :RUN_NEXT
@@ -99,15 +116,10 @@ jobs:
           mkdir result
           for %%f in (input\*) do (
           	start "" /BELOWNORMAL /WAIT /B cmd /c kekw.exe -hide_banner -loglevel error -i "%%f" -map 0:v:0 -pix_fmt yuv420p -f yuv4mpegpipe ${{inputs.f_cmdline}} - | lolw.exe -i stdin --lookahead 120 --progress 0 -b "result\%%~nf.ivf" --lp 3 --preset 3 --keyint 10s --tune 0 ${{inputs.s_cmdline}}
-            if %errorlevel% neq 0 (
-              call :NOTIFY "work failed"
-              call :RUN_NEXT
-              exit 1 
-            )
+            if %errorlevel% neq 0 ( exit 1 )
             set "OUT_NAME=!OUT_NAME!_%%~nf"
             del "%%f"
           )
-          set "PATH=%PATH%;C:\Program Files\Cloudflare\Cloudflare WARP"
           warp-cli --accept-tos connect
           7z a -bso0 -sdel -mx0 -mhe -p${{secrets.SECRET_P}} %OUT_NAME:~1%.7z .\result\*
           rmdir result /S /Q
@@ -123,5 +135,11 @@ jobs:
         shell: cmd
         run: |
           del /F /Q *.7z
-          echo ${{github.workflow}} finished| curl -s -x socks5://127.0.0.1:40000 -m 1 ${{secrets.NOTIFY}}
+          echo ${{github.workflow}} finished| curl -s -x socks5://127.0.0.1:40000 -m 1 --doh-url https://cloudflare-dns.com/dns-query ${{secrets.NOTIFY}}
+          exit 0
+      - name: Failure
+        shell: cmd
+        if: ${{ failure() && steps.check.conclusion != 'failure' }}
+        run: |
+          echo ${{github.workflow}} failed| curl -s -x socks5://127.0.0.1:40000 -m 1 --doh-url https://cloudflare-dns.com/dns-query ${{secrets.NOTIFY}}
           exit 0
